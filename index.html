@@ -193,23 +193,16 @@ function MTGLifeCounter() {
                 const newPlayers = players.map(p => {
                     if (p.id === receiverId) {
                         const currentDamage = (p.commanderDamage && p.commanderDamage[dealerId]) || 0;
-                        
-                        // 1. Calculate the new damage, ensuring it doesn't go below 0
                         const newDamage = Math.max(0, currentDamage + delta);
-
-                        // 2. Calculate the difference between the current damage and the new damage.
-                        //    This tells us the NET change in commander damage.
-                        //    Change in damage = newDamage - currentDamage
-                        const damageChange = newDamage - currentDamage;
                         
-                        // 3. Update the life total by subtracting the net change in commander damage.
-                        //    If damageChange is +1, newLife = p.life - 1 (Life decreases. CORRECT)
-                        //    If damageChange is -1, newLife = p.life - (-1) = p.life + 1 (Life increases for undo. CORRECT)
-                        const newLife = p.life - damageChange; 
+                        // New Life Calculation:
+                        // + Button sends delta=1. newLife = p.life - 1. (Life Decreases. CORRECT)
+                        // - Button sends delta=-1. newLife = p.life - (-1) = p.life + 1. (Life Increases. CORRECT for undo)
+                        const newLife = p.life - delta; 
                         
                         return {
                             ...p,
-                            life: newLife,
+                            life: newLife, 
                             commanderDamage: {
                                 ...(p.commanderDamage || {}),
                                 [dealerId]: newDamage
