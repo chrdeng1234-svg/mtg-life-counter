@@ -187,29 +187,34 @@
                 });
             };
 
-           const updateCommanderDamage = (receiverId, dealerId, delta) => {
+          const updateCommanderDamage = (receiverId, dealerId, delta) => {
                 if (!database) return;
                 
                 const newPlayers = players.map(p => {
                     if (p.id === receiverId) {
                         const currentDamage = (p.commanderDamage && p.commanderDamage[dealerId]) || 0;
-                        const newDamage = Math.max(0, currentDamage + delta);
                         
-                        // --- START OF CORRECT MODIFICATION ---
-                        // We apply the NEGATIVE of delta to the life total.
-                        // If delta is +1 (increasing commander damage), newLife = p.life - 1.
-                        // If delta is -1 (correcting/removing commander damage), newLife = p.life + 1.
-                        const newLife = p.life - delta; 
+                        // 1. Calculate the new damage, ensuring it doesn't go below 0
+                        const newDamage = Math.max(0, currentDamage + delta);
+
+                        // 2. Calculate the difference between the current damage and the new damage.
+                        //    This tells us the NET change in commander damage.
+                        //    Change in damage = newDamage - currentDamage
+                        const damageChange = newDamage - currentDamage;
+                        
+                        // 3. Update the life total by subtracting the net change in commander damage.
+                        //    If damageChange is +1, newLife = p.life - 1 (Life decreases. CORRECT)
+                        //    If damageChange is -1, newLife = p.life - (-1) = p.life + 1 (Life increases for undo. CORRECT)
+                        const newLife = p.life - damageChange; 
                         
                         return {
                             ...p,
-                            life: newLife, // <--- REDUCE LIFE TOTAL WHEN DAMAGE INCREASES
+                            life: newLife,
                             commanderDamage: {
                                 ...(p.commanderDamage || {}),
                                 [dealerId]: newDamage
                             }
                         };
-                        // --- END OF CORRECT MODIFICATION ---
                     }
                     return p;
                 });
