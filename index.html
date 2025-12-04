@@ -95,68 +95,15 @@
         );
 
 function MTGLifeCounter() {
-    const [gameId, setGameId] = useState('');
-    const [players, setPlayers] = useState([]);
-    const [isHost, setIsHost] = useState(false);
-    const [showCommanderDamage, setShowCommanderDamage] = useState({});
-    const [error, setError] = useState('');
+            const [gameId, setGameId] = useState('');
+            const [players, setPlayers] = useState([]);
+            const [isHost, setIsHost] = useState(false);
+            const [showCommanderDamage, setShowCommanderDamage] = useState({});
+            const [error, setError] = useState('');
 
-    // --- NEW STATE FOR HOLD FEATURE ---
-    const [lifeIntervalId, setLifeIntervalId] = useState(null);
-    // ---------------------------------
-    
-    // ... rest of the component state and functions ...
-
-    // --- NEW HANDLER FUNCTIONS (Add these after resetGame or similar functions) ---
-    
-    const FAST_CHANGE_AMOUNT = 10;
-    const START_DELAY = 500; // ms before fast change starts
-    const REPEAT_RATE = 100; // ms for repeated changes
-
-    const handleLifeChange = (playerId, delta, isFast) => {
-        const change = isFast ? delta * FAST_CHANGE_AMOUNT : delta;
-        updateLife(playerId, change);
-    };
-
-    const handleLifeChangeStart = (playerId, delta) => {
-        // Immediate single change
-        updateLife(playerId, delta);
-
-        // Start the continuous interval after a delay
-        const interval = setTimeout(() => {
-            const repeatInterval = setInterval(() => {
-                updateLife(playerId, delta * FAST_CHANGE_AMOUNT);
-            }, REPEAT_RATE);
-            setLifeIntervalId(repeatInterval);
-        }, START_DELAY);
-
-        // Store the initial timeout ID to clear it if the user releases quickly
-        setLifeIntervalId(interval);
-    };
-
-    const handleLifeChangeStop = () => {
-        if (lifeIntervalId) {
-            // Check if it's the initial setTimeout or the fast setInterval
-            if (typeof lifeIntervalId === 'number') {
-                clearInterval(lifeIntervalId);
-            } else {
-                clearTimeout(lifeIntervalId);
-            }
-            // Clear both potential timeout and interval handles.
-            // Since we set both to the same state variable, we need to check the type.
-            clearTimeout(lifeIntervalId);
-            clearInterval(lifeIntervalId);
-            setLifeIntervalId(null);
-        }
-    };
-
-    // ... rest of the component ...
-
-    // Add handleLifeChangeStop to a global listener for safety (handles mouse release outside the button)
-    // NOTE: This is generally needed for a robust desktop solution but may be complex for a quick fix. 
-    // We'll rely on the button's onMouseUp/onMouseLeave/onTouchEnd for simplicity in this example.
-
-    // ... rest of the component ...
+            const generateGameId = () => {
+                return Math.random().toString(36).substring(2, 8).toUpperCase();
+            };
 
             // Ensure player has commanderDamage initialized
             const normalizePlayer = (player) => {
@@ -424,41 +371,21 @@ function MTGLifeCounter() {
                                                 {player.life}
                                             </div>
                                             
-                                           /* --- NEW LIFE ADJUSTMENT BUTTONS (replace the original block) --- */
-<div className="flex gap-3 justify-center mb-4">
-    {/* Minus Button */}
-    <button
-        // Single click action
-        onClick={() => handleLifeChangeStop()} 
-        // Hold actions: onMouseDown starts the timer, mouseUp/Leave stops it.
-        onMouseDown={() => handleLifeChangeStart(player.id, -1)}
-        onMouseUp={handleLifeChangeStop}
-        onMouseLeave={handleLifeChangeStop}
-        // Touch actions for mobile
-        onTouchStart={() => handleLifeChangeStart(player.id, -1)}
-        onTouchEnd={handleLifeChangeStop}
-        className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
-    >
-        <Minus size={32} />
-    </button>
-    
-    {/* Plus Button */}
-    <button
-        // Single click action
-        onClick={() => handleLifeChangeStop()} 
-        // Hold actions
-        onMouseDown={() => handleLifeChangeStart(player.id, 1)}
-        onMouseUp={handleLifeChangeStop}
-        onMouseLeave={handleLifeChangeStop}
-        // Touch actions for mobile
-        onTouchStart={() => handleLifeChangeStart(player.id, 1)}
-        onTouchEnd={handleLifeChangeStop}
-        className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
-    >
-        <Plus size={32} />
-    </button>
-</div>
-
+                                           <div className="flex gap-3 justify-center mb-4">
+                                                <button
+                                                    onClick={() => updateLife(player.id, -1)}
+                                                    className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
+                                                >
+                                                    <Minus size={32} />
+                                                </button>
+                                                <button
+                                                    onClick={() => updateLife(player.id, 1)}
+                                                    className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
+                                                >
+                                                    <Plus size={32} />
+                                                </button>
+                                            </div>
+                                            
                                             <button
                                                 onClick={() => toggleCommanderDamage(player.id)}
                                                 className="bg-black/30 hover:bg-black/50 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 mx-auto"
