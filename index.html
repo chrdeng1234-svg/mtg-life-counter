@@ -194,13 +194,22 @@
                     if (p.id === receiverId) {
                         const currentDamage = (p.commanderDamage && p.commanderDamage[dealerId]) || 0;
                         const newDamage = Math.max(0, currentDamage + delta);
+                        
+                        // --- START OF MODIFICATION ---
+                        // Only update life if delta is negative (damage dealt)
+                        // If you are tracking damage with +1/-1 buttons, you only
+                        // want the life to decrease when delta is -1 (or less).
+                        const newLife = p.life + delta; 
+                        
                         return {
                             ...p,
+                            life: newLife, // <--- REDUCE LIFE TOTAL
                             commanderDamage: {
                                 ...(p.commanderDamage || {}),
                                 [dealerId]: newDamage
                             }
                         };
+                        // --- END OF MODIFICATION ---
                     }
                     return p;
                 });
