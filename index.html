@@ -102,6 +102,7 @@
             const [error, setError] = useState('');
             const [holdTimer, setHoldTimer] = useState(null);
             const [holdInterval, setHoldInterval] = useState(null);
+            const [pressParams, setPressParams] = useState(null);
 
             const generateGameId = () => {
                 return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -190,15 +191,18 @@
             };
 
             const handleLifePress = (playerId, delta) => {
-                // Immediate update
-                updateLife(playerId, delta);
+                // Store params for quick tap
+                setPressParams({ type: 'life', playerId, delta });
                 
-                // Set timer for hold (500ms)
+                // Set timer for hold (500ms) - no immediate update
                 const timer = setTimeout(() => {
+                    // First update by 10 after hold threshold
+                    updateLife(playerId, delta * 10);
+                    
                     // Start interval for continuous updates by 10
                     const interval = setInterval(() => {
                         updateLife(playerId, delta * 10);
-                    }, 100);
+                    }, 150);
                     setHoldInterval(interval);
                 }, 500);
                 
@@ -206,6 +210,11 @@
             };
 
             const handleLifeRelease = () => {
+                // If released before hold threshold, do single update
+                if (holdTimer && !holdInterval && pressParams && pressParams.type === 'life') {
+                    updateLife(pressParams.playerId, pressParams.delta);
+                }
+                
                 if (holdTimer) {
                     clearTimeout(holdTimer);
                     setHoldTimer(null);
@@ -214,18 +223,22 @@
                     clearInterval(holdInterval);
                     setHoldInterval(null);
                 }
+                setPressParams(null);
             };
 
             const handleCommanderPress = (receiverId, dealerId, delta) => {
-                // Immediate update
-                updateCommanderDamage(receiverId, dealerId, delta);
+                // Store params for quick tap
+                setPressParams({ type: 'commander', receiverId, dealerId, delta });
                 
-                // Set timer for hold (500ms)
+                // Set timer for hold (500ms) - no immediate update
                 const timer = setTimeout(() => {
+                    // First update by 10 after hold threshold
+                    updateCommanderDamage(receiverId, dealerId, delta * 10);
+                    
                     // Start interval for continuous updates by 10
                     const interval = setInterval(() => {
                         updateCommanderDamage(receiverId, dealerId, delta * 10);
-                    }, 100);
+                    }, 150);
                     setHoldInterval(interval);
                 }, 500);
                 
@@ -233,6 +246,11 @@
             };
 
             const handleCommanderRelease = () => {
+                // If released before hold threshold, do single update
+                if (holdTimer && !holdInterval && pressParams && pressParams.type === 'commander') {
+                    updateCommanderDamage(pressParams.receiverId, pressParams.dealerId, pressParams.delta);
+                }
+                
                 if (holdTimer) {
                     clearTimeout(holdTimer);
                     setHoldTimer(null);
@@ -241,6 +259,7 @@
                     clearInterval(holdInterval);
                     setHoldInterval(null);
                 }
+                setPressParams(null);
             };
 
             const updateCommanderDamage = (receiverId, dealerId, delta) => {
