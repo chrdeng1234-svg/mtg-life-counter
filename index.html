@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Life Counter - Multiplayer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Initialize Firebase with a demo config
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+			const firebaseConfig = {
+				apiKey: "AIzaSyBHKyMN1xN-MjlIjCQQfDxcSMz3N1Ya120",
+				authDomain: "mtg-life-counter-89b30.firebaseapp.com",
+				projectId: "mtg-life-counter-89b30",
+				storageBucket: "mtg-life-counter-89b30.firebasestorage.app",
+				messagingSenderId: "378955194548",
+				appId: "1:378955194548:web:52e96ef1abef268ea1f7e1",
+				measurementId: "G-3QSGWRMQJ4"
+			};
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+
+        let database;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            database = firebase.database();
+        } catch (error) {
+            console.error("Firebase initialization error:", error);
+        }
+
+        // Lucide Icons as SVG components
+        const Users = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+        );
+
+        const Plus = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"/><path d="M12 5v14"/>
+            </svg>
+        );
+
+        const Minus = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"/>
+            </svg>
+        );
+
+        const RotateCcw = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+            </svg>
+        );
+
+        const Share2 = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>
+            </svg>
+        );
+
+        const RefreshCw = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                <path d="M16 16h5v5"/>
+            </svg>
+        );
+
+        const Swords = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/>
+                <line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/>
+                <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/>
+                <line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/>
+            </svg>
+        );
+
+        function MTGLifeCounter() {
+            const [gameId, setGameId] = useState('');
+            const [players, setPlayers] = useState([]);
+            const [isHost, setIsHost] = useState(false);
+            const [loading, setLoading] = useState(false);
+            const [showCommanderDamage, setShowCommanderDamage] = useState({});
+            const [error, setError] = useState('');
+
+            // Generate a random game ID
+            const generateGameId = () => {
+                return Math.random().toString(36).substring(2, 8).toUpperCase();
+            };
+
+            // Create new game
+            const createGame = () => {
+                if (!database) {
+                    setError('Firebase not configured. Please add your Firebase config.');
+                    return;
+                }
+                
+                const newGameId = generateGameId();
+                const initialPlayers = [
+                    { id: 1, name: 'Player 1', life: 20, color: 'bg-blue-500', commanderDamage: {} },
+                    { id: 2, name: 'Player 2', life: 20, color: 'bg-red-500', commanderDamage: {} }
+                ];
+                
+                setGameId(newGameId);
+                setPlayers(initialPlayers);
+                setIsHost(true);
+                
+                database.ref('games/' + newGameId).set({
+                    players: initialPlayers,
+                    lastUpdate: Date.now()
+                });
+            };
+
+            // Join existing game
+            const joinGame = (id) => {
+                if (!database) {
+                    setError('Firebase not configured. Please add your Firebase config.');
+                    return;
+                }
+                
+                const cleanId = id.trim().toUpperCase();
+                if (cleanId.length === 6) {
+                    setGameId(cleanId);
+                    setIsHost(false);
+                    
+                    database.ref('games/' + cleanId).once('value').then((snapshot) => {
+                        if (snapshot.exists()) {
+                            setPlayers(snapshot.val().players);
+                            setError('');
+                        } else {
+                            setError('Game not found!');
+                        }
+                    });
+                }
+            };
+
+            // Listen for game updates
+            useEffect(() => {
+                if (!gameId || !database) return;
+
+                const gameRef = database.ref('games/' + gameId);
+                const listener = gameRef.on('value', (snapshot) => {
+                    if (snapshot.exists()) {
+                        setPlayers(snapshot.val().players);
+                    }
+                });
+
+                return () => gameRef.off('value', listener);
+            }, [gameId]);
+
+            // Update life total
+            const updateLife = (playerId, delta) => {
+                if (!database) return;
+                
+                const newPlayers = players.map(p => 
+                    p.id === playerId ? { ...p, life: p.life + delta } : p
+                );
+                
+                database.ref('games/' + gameId).update({
+                    players: newPlayers,
+                    lastUpdate: Date.now()
+                });
+            };
+
+            // Update commander damage
+            const updateCommanderDamage = (receiverId, dealerId, delta) => {
+                if (!database) return;
+                
+                const newPlayers = players.map(p => {
+                    if (p.id === receiverId) {
+                        const currentDamage = p.commanderDamage[dealerId] || 0;
+                        const newDamage = Math.max(0, currentDamage + delta);
+                        return {
+                            ...p,
+                            commanderDamage: {
+                                ...p.commanderDamage,
+                                [dealerId]: newDamage
+                            }
+                        };
+                    }
+                    return p;
+                });
+                
+                database.ref('games/' + gameId).update({
+                    players: newPlayers,
+                    lastUpdate: Date.now()
+                });
+            };
+
+            // Add player
+            const addPlayer = () => {
+                if (!database || players.length >= 6) return;
+                
+                const colors = ['bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500'];
+                const newPlayer = {
+                    id: Date.now(),
+                    name: `Player ${players.length + 1}`,
+                    life: 20,
+                    color: colors[players.length % colors.length],
+                    commanderDamage: {}
+                };
+                const newPlayers = [...players, newPlayer];
+                
+                database.ref('games/' + gameId).update({
+                    players: newPlayers,
+                    lastUpdate: Date.now()
+                });
+            };
+
+            // Reset game
+            const resetGame = () => {
+                if (!database) return;
+                
+                const resetPlayers = players.map(p => ({ ...p, life: 20, commanderDamage: {} }));
+                
+                database.ref('games/' + gameId).update({
+                    players: resetPlayers,
+                    lastUpdate: Date.now()
+                });
+            };
+
+            // Toggle commander damage view
+            const toggleCommanderDamage = (playerId) => {
+                setShowCommanderDamage(prev => ({
+                    ...prev,
+                    [playerId]: !prev[playerId]
+                }));
+            };
+
+            // Copy game ID
+            const copyGameId = () => {
+                navigator.clipboard.writeText(gameId);
+                alert('Game ID copied to clipboard!');
+            };
+
+            if (!gameId) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white p-8">
+                        <div className="max-w-md mx-auto">
+                            <div className="text-center mb-12">
+                                <div className="w-20 h-20 mx-auto mb-4 text-purple-400 flex items-center justify-center">
+                                    <Users />
+                                </div>
+                                <h1 className="text-4xl font-bold mb-2">MTG Life Counter</h1>
+                                <p className="text-gray-400">Multiplayer - Real-time Sync</p>
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded mb-4">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="space-y-4">
+                                <button
+                                    onClick={createGame}
+                                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg"
+                                >
+                                    Create New Game
+                                </button>
+
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-gray-700"></div>
+                                    </div>
+                                    <div className="relative flex justify-center text-sm">
+                                        <span className="px-4 bg-gradient-to-br from-purple-900 via-blue-900 to-black text-gray-400">
+                                            OR
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter 6-digit Game ID"
+                                        maxLength={6}
+                                        className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg py-3 px-4 mb-3 uppercase text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        onChange={(e) => {
+                                            if (e.target.value.length === 6) {
+                                                joinGame(e.target.value);
+                                            }
+                                        }}
+                                    />
+                                    <p className="text-sm text-gray-400 text-center">
+                                        Join an existing game with a 6-digit code
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white p-4">
+                    <div className="max-w-6xl mx-auto mb-6">
+                        <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 flex items-center justify-between flex-wrap gap-4">
+                            <div>
+                                <h2 className="text-2xl font-bold">Game ID: {gameId}</h2>
+                                <p className="text-sm text-gray-400">
+                                    {isHost ? 'Host' : 'Joined'} • {players.length} player{players.length !== 1 ? 's' : ''}
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={copyGameId}
+                                    className="bg-purple-600 hover:bg-purple-700 p-3 rounded-lg transition-colors"
+                                    title="Copy Game ID"
+                                >
+                                    <Share2 />
+                                </button>
+                                <button
+                                    onClick={resetGame}
+                                    className="bg-red-600 hover:bg-red-700 p-3 rounded-lg transition-colors"
+                                    title="Reset All"
+                                >
+                                    <RotateCcw />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-6xl mx-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {players.map((player) => (
+                                <div
+                                    key={player.id}
+                                    className={`${player.color} rounded-2xl shadow-2xl overflow-hidden transform transition-all hover:scale-105`}
+                                >
+                                    <div className="bg-black/30 p-4 text-center">
+                                        <h3 className="text-xl font-bold">{player.name}</h3>
+                                    </div>
+                                    
+                                    <div className="p-8 text-center">
+                                        <div className="text-8xl font-bold mb-6 drop-shadow-lg">
+                                            {player.life}
+                                        </div>
+                                        
+                                        <div className="flex gap-3 justify-center mb-4">
+                                            <button
+                                                onClick={() => updateLife(player.id, -1)}
+                                                className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
+                                            >
+                                                <Minus />
+                                            </button>
+                                            <button
+                                                onClick={() => updateLife(player.id, 1)}
+                                                className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
+                                            >
+                                                <Plus />
+                                            </button>
+                                        </div>
+
+                                        <button
+                                            onClick={() => toggleCommanderDamage(player.id)}
+                                            className="bg-black/30 hover:bg-black/50 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 mx-auto"
+                                        >
+                                            <Swords />
+                                            Commander Damage
+                                        </button>
+
+                                        {showCommanderDamage[player.id] && (
+                                            <div className="mt-4 bg-black/50 rounded-lg p-4 space-y-2">
+                                                {players.filter(p => p.id !== player.id).map(dealer => {
+                                                    const damage = player.commanderDamage[dealer.id] || 0;
+                                                    const isLethal = damage >= 21;
+                                                    return (
+                                                        <div key={dealer.id} className="flex items-center justify-between">
+                                                            <span className="text-sm font-medium">{dealer.name}:</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => updateCommanderDamage(player.id, dealer.id, -1)}
+                                                                    className="bg-black/50 hover:bg-black/70 w-8 h-8 rounded flex items-center justify-center transition-all"
+                                                                >
+                                                                    <Minus />
+                                                                </button>
+                                                                <span className={`text-2xl font-bold w-12 ${isLethal ? 'text-red-300' : ''}`}>
+                                                                    {damage}
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => updateCommanderDamage(player.id, dealer.id, 1)}
+                                                                    className="bg-black/50 hover:bg-black/70 w-8 h-8 rounded flex items-center justify-center transition-all"
+                                                                >
+                                                                    <Plus />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {players.length === 1 && (
+                                                    <p className="text-sm text-gray-400 italic">Add more players to track commander damage</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+
+                            {players.length < 6 && isHost && (
+                                <button
+                                    onClick={addPlayer}
+                                    className="border-4 border-dashed border-gray-600 hover:border-gray-400 rounded-2xl p-8 flex flex-col items-center justify-center transition-all hover:bg-white/5 min-h-[300px]"
+                                >
+                                    <Plus />
+                                    <span className="text-xl text-gray-400 mt-4">Add Player</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<MTGLifeCounter />, document.getElementById('root'));
+    </script>
+</body>
+</html>
