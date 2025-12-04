@@ -105,6 +105,14 @@
                 return Math.random().toString(36).substring(2, 8).toUpperCase();
             };
 
+            // Ensure player has commanderDamage initialized
+            const normalizePlayer = (player) => {
+                return {
+                    ...player,
+                    commanderDamage: player.commanderDamage || {}
+                };
+            };
+
             const createGame = () => {
                 if (!database) {
                     setError('Firebase not configured. Please add your Firebase config to the HTML file.');
@@ -140,7 +148,9 @@
                     
                     database.ref('games/' + cleanId).once('value').then((snapshot) => {
                         if (snapshot.exists()) {
-                            setPlayers(snapshot.val().players);
+                            const gameData = snapshot.val().players;
+                            const normalizedPlayers = gameData.map(normalizePlayer);
+                            setPlayers(normalizedPlayers);
                             setError('');
                         } else {
                             setError('Game not found!');
@@ -155,7 +165,9 @@
                 const gameRef = database.ref('games/' + gameId);
                 const listener = gameRef.on('value', (snapshot) => {
                     if (snapshot.exists()) {
-                        setPlayers(snapshot.val().players);
+                        const gameData = snapshot.val().players;
+                        const normalizedPlayers = gameData.map(normalizePlayer);
+                        setPlayers(normalizedPlayers);
                     }
                 });
 
@@ -180,12 +192,12 @@
                 
                 const newPlayers = players.map(p => {
                     if (p.id === receiverId) {
-                        const currentDamage = p.commanderDamage[dealerId] || 0;
+                        const currentDamage = (p.commanderDamage && p.commanderDamage[dealerId]) || 0;
                         const newDamage = Math.max(0, currentDamage + delta);
                         return {
                             ...p,
                             commanderDamage: {
-                                ...p.commanderDamage,
+                                ...(p.commanderDamage || {}),
                                 [dealerId]: newDamage
                             }
                         };
@@ -205,7 +217,7 @@
                 const colors = ['bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500'];
                 const newPlayer = {
                     id: Date.now(),
-                    name: `Player ${players.length + 1}`,
+                    name: 'Player ' + (players.length + 1),
                     life: 40,
                     color: colors[players.length % colors.length],
                     commanderDamage: {}
@@ -307,7 +319,7 @@
                             <div>
                                 <h2 className="text-2xl font-bold">Game ID: {gameId}</h2>
                                 <p className="text-sm text-gray-400">
-                                    {isHost ? 'Host' : 'Joined'} • {players.length} player{players.length !== 1 ? 's' : ''}
+                                    {isHost ? 'Host' : 'Joined'} • {players.length} {players.length !== 1 ? 'players' : 'player'}
                                 </p>
                             </div>
                             <div className="flex gap-2">
@@ -331,79 +343,82 @@
 
                     <div className="max-w-6xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {players.map((player) => (
-                                <div
-                                    key={player.id}
-                                    className={`${player.color} rounded-2xl shadow-2xl overflow-hidden transform transition-all hover:scale-105`}
-                                >
-                                    <div className="bg-black/30 p-4 text-center">
-                                        <h3 className="text-xl font-bold">{player.name}</h3>
-                                    </div>
-                                    
-                                    <div className="p-8 text-center">
-                                        <div className="text-8xl font-bold mb-6 drop-shadow-lg">
-                                            {player.life}
+                            {players.map((player) => {
+                                const playerColorClass = player.color + ' rounded-2xl shadow-2xl overflow-hidden transform transition-all hover:scale-105';
+                                
+                                return (
+                                    <div key={player.id} className={playerColorClass}>
+                                        <div className="bg-black/30 p-4 text-center">
+                                            <h3 className="text-xl font-bold">{player.name}</h3>
                                         </div>
                                         
-                                        <div className="flex gap-3 justify-center mb-4">
-                                            <button
-                                                onClick={() => updateLife(player.id, -1)}
-                                                className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
-                                            >
-                                                <Minus size={32} />
-                                            </button>
-                                            <button
-                                                onClick={() => updateLife(player.id, 1)}
-                                                className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
-                                            >
-                                                <Plus size={32} />
-                                            </button>
-                                        </div>
-
-                                        <button
-                                            onClick={() => toggleCommanderDamage(player.id)}
-                                            className="bg-black/30 hover:bg-black/50 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 mx-auto"
-                                        >
-                                            <Swords size={16} />
-                                            Commander Damage
-                                        </button>
-
-                                        {showCommanderDamage[player.id] && (
-                                            <div className="mt-4 bg-black/50 rounded-lg p-4 space-y-2">
-                                                {players.filter(p => p.id !== player.id).map(dealer => {
-                                                    const damage = player.commanderDamage[dealer.id] || 0;
-                                                    const isLethal = damage >= 21;
-                                                    return (
-                                                        <div key={dealer.id} className="flex items-center justify-between">
-                                                            <span className="text-sm font-medium">{dealer.name}:</span>
-                                                            <div className="flex items-center gap-2">
-                                                                <button
-                                                                    onClick={() => updateCommanderDamage(player.id, dealer.id, -1)}
-                                                                    className="bg-black/50 hover:bg-black/70 w-8 h-8 rounded flex items-center justify-center transition-all"
-                                                                >
-                                                                    <Minus size={16} />
-                                                                </button>
-                                                                <span className={`text-2xl font-bold w-12 ${isLethal ? 'text-red-300' : ''}`}>
-                                                                    {damage}
-                                                                </span>
-                                                                <button
-                                                                    onClick={() => updateCommanderDamage(player.id, dealer.id, 1)}
-                                                                    className="bg-black/50 hover:bg-black/70 w-8 h-8 rounded flex items-center justify-center transition-all"
-                                                                >
-                                                                    <Plus size={16} />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                                {players.length === 1 && (
-                                                    <p className="text-sm text-gray-400 italic">Add more players to track commander damage</p>
-                                                )}
+                                        <div className="p-8 text-center">
+                                            <div className="text-8xl font-bold mb-6 drop-shadow-lg">
+                                                {player.life}
                                             </div>
-                                        )}
+                                            
+                                            <div className="flex gap-3 justify-center mb-4">
+                                                <button
+                                                    onClick={() => updateLife(player.id, -1)}
+                                                    className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
+                                                >
+                                                    <Minus size={32} />
+                                                </button>
+                                                <button
+                                                    onClick={() => updateLife(player.id, 1)}
+                                                    className="bg-black/50 hover:bg-black/70 w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95"
+                                                >
+                                                    <Plus size={32} />
+                                                </button>
+                                            </div>
+
+                                            <button
+                                                onClick={() => toggleCommanderDamage(player.id)}
+                                                className="bg-black/30 hover:bg-black/50 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 mx-auto"
+                                            >
+                                                <Swords size={16} />
+                                                Commander Damage
+                                            </button>
+
+                                            {showCommanderDamage[player.id] && (
+                                                <div className="mt-4 bg-black/50 rounded-lg p-4 space-y-2">
+                                                    {players.filter(p => p.id !== player.id).map(dealer => {
+                                                        const damage = (player.commanderDamage && player.commanderDamage[dealer.id]) || 0;
+                                                        const isLethal = damage >= 21;
+                                                        const damageClass = isLethal ? 'text-2xl font-bold w-12 text-red-300' : 'text-2xl font-bold w-12';
+                                                        
+                                                        return (
+                                                            <div key={dealer.id} className="flex items-center justify-between">
+                                                                <span className="text-sm font-medium">{dealer.name}:</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => updateCommanderDamage(player.id, dealer.id, -1)}
+                                                                        className="bg-black/50 hover:bg-black/70 w-8 h-8 rounded flex items-center justify-center transition-all"
+                                                                    >
+                                                                        <Minus size={16} />
+                                                                    </button>
+                                                                    <span className={damageClass}>
+                                                                        {damage}
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={() => updateCommanderDamage(player.id, dealer.id, 1)}
+                                                                        className="bg-black/50 hover:bg-black/70 w-8 h-8 rounded flex items-center justify-center transition-all"
+                                                                    >
+                                                                        <Plus size={16} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {players.length === 1 && (
+                                                        <p className="text-sm text-gray-400 italic">Add more players to track commander damage</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
 
                             {players.length < 6 && isHost && (
                                 <button
