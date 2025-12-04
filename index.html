@@ -199,7 +199,7 @@
                         // Only update life if delta is negative (damage dealt)
                         // If you are tracking damage with +1/-1 buttons, you only
                         // want the life to decrease when delta is -1 (or less).
-                        const newLife = p.life + delta; 
+                        const newLife = p.life - delta; 
                         
                         return {
                             ...p,
