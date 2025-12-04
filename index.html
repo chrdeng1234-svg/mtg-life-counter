@@ -187,7 +187,7 @@
                 });
             };
 
-            const updateCommanderDamage = (receiverId, dealerId, delta) => {
+           const updateCommanderDamage = (receiverId, dealerId, delta) => {
                 if (!database) return;
                 
                 const newPlayers = players.map(p => {
@@ -195,21 +195,21 @@
                         const currentDamage = (p.commanderDamage && p.commanderDamage[dealerId]) || 0;
                         const newDamage = Math.max(0, currentDamage + delta);
                         
-                        // --- START OF MODIFICATION ---
-                        // Only update life if delta is negative (damage dealt)
-                        // If you are tracking damage with +1/-1 buttons, you only
-                        // want the life to decrease when delta is -1 (or less).
+                        // --- START OF CORRECT MODIFICATION ---
+                        // We apply the NEGATIVE of delta to the life total.
+                        // If delta is +1 (increasing commander damage), newLife = p.life - 1.
+                        // If delta is -1 (correcting/removing commander damage), newLife = p.life + 1.
                         const newLife = p.life - delta; 
                         
                         return {
                             ...p,
-                            life: newLife, // <--- REDUCE LIFE TOTAL
+                            life: newLife, // <--- REDUCE LIFE TOTAL WHEN DAMAGE INCREASES
                             commanderDamage: {
                                 ...(p.commanderDamage || {}),
                                 [dealerId]: newDamage
                             }
                         };
-                        // --- END OF MODIFICATION ---
+                        // --- END OF CORRECT MODIFICATION ---
                     }
                     return p;
                 });
