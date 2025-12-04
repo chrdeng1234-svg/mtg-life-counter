@@ -196,12 +196,22 @@
                 
                 // Set timer for hold (500ms) - no immediate update
                 const timer = setTimeout(() => {
-                    // First update by 10 after hold threshold
-                    updateLife(playerId, delta * 10);
-                    
                     // Start interval for continuous updates by 10
                     const interval = setInterval(() => {
-                        updateLife(playerId, delta * 10);
+                        setPlayers(currentPlayers => {
+                            const newPlayers = currentPlayers.map(p => 
+                                p.id === playerId ? { ...p, life: p.life + (delta * 10) } : p
+                            );
+                            
+                            if (database) {
+                                database.ref('games/' + gameId).update({
+                                    players: newPlayers,
+                                    lastUpdate: Date.now()
+                                });
+                            }
+                            
+                            return newPlayers;
+                        });
                     }, 150);
                     setHoldInterval(interval);
                 }, 500);
@@ -232,12 +242,36 @@
                 
                 // Set timer for hold (500ms) - no immediate update
                 const timer = setTimeout(() => {
-                    // First update by 10 after hold threshold
-                    updateCommanderDamage(receiverId, dealerId, delta * 10);
-                    
                     // Start interval for continuous updates by 10
                     const interval = setInterval(() => {
-                        updateCommanderDamage(receiverId, dealerId, delta * 10);
+                        setPlayers(currentPlayers => {
+                            const newPlayers = currentPlayers.map(p => {
+                                if (p.id === receiverId) {
+                                    const currentDamage = (p.commanderDamage && p.commanderDamage[dealerId]) || 0;
+                                    const newDamage = Math.max(0, currentDamage + (delta * 10));
+                                    const newLife = p.life - (delta * 10);
+                                    
+                                    return {
+                                        ...p,
+                                        life: newLife, 
+                                        commanderDamage: {
+                                            ...(p.commanderDamage || {}),
+                                            [dealerId]: newDamage
+                                        }
+                                    };
+                                }
+                                return p;
+                            });
+                            
+                            if (database) {
+                                database.ref('games/' + gameId).update({
+                                    players: newPlayers,
+                                    lastUpdate: Date.now()
+                                });
+                            }
+                            
+                            return newPlayers;
+                        });
                     }, 150);
                     setHoldInterval(interval);
                 }, 500);
